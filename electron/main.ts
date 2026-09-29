@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { autoUpdater } from "electron-updater";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -195,6 +196,112 @@ ipcMain.handle(
   },
 );
 
+// Auto-updater handlers and logic
+ipcMain.handle("app:get-version", () => {
+  return app.getVersion();
+});
+
+ipcMain.handle("update:check", async () => {
+  if (!app.isPackaged) {
+    return { status: "dev", message: "Updates are disabled in development mode." };
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { status: "ok", updateInfo: result?.updateInfo };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { status: "error", error: message };
+  }
+});
+
+ipcMain.handle("update:restart-and-install", () => {
+  autoUpdater.quitAndInstall();
+});
+
+function initAutoUpdater() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.logger = {
+    info: (...args: unknown[]) => console.log("[AutoUpdater]", ...args),
+    warn: (...args: unknown[]) => console.warn("[AutoUpdater]", ...args),
+    error: (...args: unknown[]) => console.error("[AutoUpdater]", ...args),
+  };
+
+  autoUpdater.on("checking-for-update", () => {
+    console.log("[AutoUpdater] Checking for updates...");
+    win?.webContents.send("update:status", { status: "checking" });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    console.log("[AutoUpdater] Update available:", info.version);
+    win?.webContents.send("update:status", { status: "available", version: info.version });
+  });
+
+  autoUpdater.on("update-not-available", (info) => {
+    console.log("[AutoUpdater] App is up to date:", info.version);
+    win?.webContents.send("update:status", { status: "not-available", version: info.version });
+  });
+
+  autoUpdater.on("error", (err) => {
+    console.error("[AutoUpdater] Update error:", err);
+    win?.webContents.send("update:status", { status: "error", error: err.message });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    win?.webContents.send("update:progress", {
+      percent: Math.round(progress.percent),
+      bytesPerSecond: progress.bytesPerSecond,
+      transferred: progress.transferred,
+      total: progress.total,
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    console.log("[AutoUpdater] Update downloaded:", info.version);
+    win?.webContents.send("update:status", { status: "downloaded", version: info.version });
+
+    if (win && !win.isDestroyed()) {
+      dialog
+        .showMessageBox(win, {
+          type: "info",
+          title: "Update Ready",
+          message: `A new version of Paperclip (${info.version}) has been downloaded.`,
+          detail: "Restart now to apply the update, or it will be installed automatically the next time you quit.",
+          buttons: ["Restart Now", "Later"],
+          defaultId: 0,
+          cancelId: 1,
+        })
+        .then((result) => {
+          if (result.response === 0) {
+            autoUpdater.quitAndInstall();
+          }
+        })
+        .catch((dialogErr) => {
+          console.error("[AutoUpdater] Dialog error:", dialogErr);
+        });
+    }
+  });
+
+  if (app.isPackaged) {
+    // Initial check 3 seconds after launch to ensure smooth startup
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.error("[AutoUpdater] Initial check error:", err);
+      });
+    }, 3000);
+
+    // Periodic check every 4 hours while app is running
+    setInterval(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.error("[AutoUpdater] Periodic check error:", err);
+      });
+    }, 4 * 60 * 60 * 1000);
+  } else {
+    console.log("[AutoUpdater] Skipping automatic update checks in development mode.");
+  }
+}
+
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
@@ -223,4 +330,5 @@ app.whenReady().then(async () => {
     // The settings file is optional on first launch.
   }
   createWindow();
+  initAutoUpdater();
 });

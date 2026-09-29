@@ -29,5 +29,19 @@ interface Window {
     isMaximized: () => Promise<boolean>;
     getPlatform: () => Promise<string>;
     onMaximizedChange: (callback: (isMaximized: boolean) => void) => () => void;
+    getVersion: () => Promise<string>;
+    checkForUpdates: () => Promise<{ status: string; updateInfo?: unknown; error?: string; message?: string }>;
+    restartAndInstall: () => Promise<void>;
+    onUpdateStatus: (
+      callback: (data: { status: string; version?: string; error?: string }) => void,
+    ) => () => void;
+    onUpdateProgress: (
+      callback: (progress: {
+        percent: number;
+        bytesPerSecond?: number;
+        transferred?: number;
+        total?: number;
+      }) => void,
+    ) => () => void;
   };
 }

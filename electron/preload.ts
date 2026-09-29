@@ -20,6 +20,45 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.off("window:maximized-change", handler);
     };
   },
+
+  // Auto-updater and version info
+  getVersion: () => ipcRenderer.invoke("app:get-version"),
+  checkForUpdates: () => ipcRenderer.invoke("update:check"),
+  restartAndInstall: () => ipcRenderer.invoke("update:restart-and-install"),
+  onUpdateStatus: (
+    callback: (data: { status: string; version?: string; error?: string }) => void,
+  ) => {
+    const handler = (
+      _event: unknown,
+      data: { status: string; version?: string; error?: string },
+    ) => callback(data);
+    ipcRenderer.on("update:status", handler);
+    return () => {
+      ipcRenderer.off("update:status", handler);
+    };
+  },
+  onUpdateProgress: (
+    callback: (progress: {
+      percent: number;
+      bytesPerSecond?: number;
+      transferred?: number;
+      total?: number;
+    }) => void,
+  ) => {
+    const handler = (
+      _event: unknown,
+      progress: {
+        percent: number;
+        bytesPerSecond?: number;
+        transferred?: number;
+        total?: number;
+      },
+    ) => callback(progress);
+    ipcRenderer.on("update:progress", handler);
+    return () => {
+      ipcRenderer.off("update:progress", handler);
+    };
+  },
 });
 
 // --------- Expose some API to the Renderer process ---------

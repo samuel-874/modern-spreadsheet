@@ -47,6 +47,7 @@ jobs:
           path: |
             release/*/*-Setup.exe
             release/*/*-Setup.exe.blockmap
+            release/*/latest.yml
           if-no-files-found: error
 
       - name: Create or update GitHub Release
@@ -61,5 +62,6 @@ jobs:
           files: |
             release/*/*-Setup.exe
             release/*/*-Setup.exe.blockmap
+            release/*/latest.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

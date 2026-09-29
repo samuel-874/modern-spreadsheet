@@ -8,6 +8,11 @@
     "output": "release/${version}",
     "buildResources": "build"
   },
+  "publish": {
+    "provider": "github",
+    "owner": "samuel-874",
+    "repo": "modern-spreadsheet"
+  },
   "files": [
     "dist",
     "dist-electron"
