@@ -594,33 +594,28 @@ input {
   color: #d97706;
 }
 
-/* In-cell syntax highlighting wrapper */
-.cell-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: stretch;
-}
+/* In-cell syntax highlighting overlay */
 .cell-syntax-backdrop {
-  position: absolute;
-  inset: 0;
   display: flex;
   align-items: center;
   white-space: pre;
   font-family: "DM Mono", monospace;
   font-size: 11px;
-  padding: 0 8px;
+  padding: 0 9px;
+  line-height: 1.35;
   pointer-events: none;
   user-select: none;
-  z-index: 4;
+  z-index: 6;
   overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
 }
 .cell.editing-formula {
   color: transparent !important;
   background: transparent !important;
   caret-color: #e56842;
-  z-index: 0 !important;
+  z-index: 5 !important;
 }
 :root[data-theme="dark"] .cell.editing-formula {
   caret-color: #f29074;

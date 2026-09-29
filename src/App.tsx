@@ -1587,6 +1587,18 @@ function App() {
     });
   }, [contextMenu, closeContextMenu, rows.length, columnCount]);
 
+  useEffect(() => {
+    const activeEl = document.activeElement;
+    const isFormulaBar =
+      activeEl?.getAttribute("aria-label") === "Formula bar" ||
+      activeEl?.id === "formula-bar-input";
+    const isSearch = activeEl?.id === "search-input";
+
+    if (!isFormulaBar && !isSearch && !contextMenu) {
+      activeCellRef.current?.focus();
+    }
+  }, [activeRow, activeCol, contextMenu]);
+
   const moveSelection = (row: number, column: number) => {
     const nextRow = Math.max(0, row);
     const nextCol = Math.max(0, column);
@@ -1596,12 +1608,6 @@ function App() {
       endRow: nextRow,
       endCol: nextCol,
     });
-    setTimeout(() => {
-      const el = document.querySelector<HTMLInputElement>(
-        `input.cell[data-row="${nextRow}"][data-col="${nextCol}"]`,
-      );
-      el?.focus();
-    }, 0);
   };
 
   const createDocument = () => {
@@ -2185,7 +2191,7 @@ function App() {
             </button>
           </div>
           <p className="empty-hint">
-            CSV and Excel files are supported with full rich formatting.
+            CSV and Excel files are supported with full rich formatting...
           </p>
           <input
             ref={fileInput}
@@ -2794,7 +2800,7 @@ function App() {
                         ...getCellInlineStyle(style),
                         gridRow: `${rowIndex + 2} / span ${rowSpan}`,
                         gridColumn: `${column + 2} / span ${colSpan}`,
-                        zIndex: isSelected ? 4 : isMerged ? 2 : 1,
+                        zIndex: isSelected ? 5 : isMerged ? 2 : 1,
                       }}
                       value={displayVal}
                       onMouseDown={(e) => {
@@ -2983,34 +2989,6 @@ function App() {
                     />
                   );
 
-                  // Always wrap the active cell so the DOM structure stays
-                  // stable when formula mode toggles (prevents focus loss
-                  // when user types "=" and the wrapper would otherwise
-                  // appear/disappear, causing React to remount the input).
-                  if (isThisCellActive) {
-                    return (
-                      <div
-                        key={`${rowIndex}-${column}`}
-                        className="cell-wrapper"
-                        style={{
-                          gridRow: `${rowIndex + 2} / span ${rowSpan}`,
-                          gridColumn: `${column + 2} / span ${colSpan}`,
-                          zIndex: isSelected ? 5 : isMerged ? 2 : 1,
-                        }}
-                      >
-                        {isThisCellEditing && isFormula && (
-                          <div
-                            className="cell-syntax-backdrop"
-                            aria-hidden="true"
-                          >
-                            {renderFormulaSyntax(rawVal)}
-                          </div>
-                        )}
-                        {cellElement}
-                      </div>
-                    );
-                  }
-
                   return cellElement;
                 })}
               </React.Fragment>
@@ -3038,6 +3016,32 @@ function App() {
                 </span>
               </div>
             ))}
+
+            {/* In-cell syntax highlighting overlay when editing formula */}
+            {editing && activeRawValue.startsWith("=") && (() => {
+              const activeMerge = getMergeAt(activeRow, activeCol);
+              const startR = activeMerge ? activeMerge.startRow : activeRow;
+              const startC = activeMerge ? activeMerge.startCol : activeCol;
+              const rowSpan = activeMerge
+                ? activeMerge.endRow - activeMerge.startRow + 1
+                : 1;
+              const colSpan = activeMerge
+                ? activeMerge.endCol - activeMerge.startCol + 1
+                : 1;
+              return (
+                <div
+                  key="active-formula-syntax-backdrop"
+                  className="cell-syntax-backdrop"
+                  aria-hidden="true"
+                  style={{
+                    gridRow: `${startR + 2} / span ${rowSpan}`,
+                    gridColumn: `${startC + 2} / span ${colSpan}`,
+                  }}
+                >
+                  {renderFormulaSyntax(activeRawValue)}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </section>
