@@ -3,7 +3,7 @@
   "productName": "Paperclip",
   "description": "A calm, fast, and modern spreadsheet workspace for CSV and Excel files",
   "author": "Paperclip Team",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "scripts": {

@@ -2185,7 +2185,7 @@ function App() {
             </button>
           </div>
           <p className="empty-hint">
-            CSV and Excel files are supported with full rich formatting.
+            CSV and Excel files are supported with full rich formatting...
           </p>
           <input
             ref={fileInput}
